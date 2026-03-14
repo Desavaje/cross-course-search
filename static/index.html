@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Course Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:  #f7f3ed;
+  --parchment: #ede7da;
+  --ink:    #1a1612;
+  --ink2:   #3d342a;
+  --ink3:   #7a6e64;
+  --rust:   #c2440a;
+  --rust2:  #e85d1a;
+  --teal:   #1d6a72;
+  --gold:   #b07d2c;
+  --border: #d4c9b8;
+  --shadow: rgba(26,22,18,0.10);
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono:  'DM Mono', monospace;
+  --font-sans:  'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  /* subtle paper texture via repeating noise */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* ── HEADER ─────────────────────────────────────── */
+header {
+  background: var(--ink);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  position: sticky; top: 0; z-index: 100;
+  border-bottom: 3px solid var(--rust);
+}
+
+.logo {
+  display: flex; align-items: baseline; gap: 10px;
+}
+.logo-main {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--cream);
+  letter-spacing: -0.5px;
+}
+.logo-main em { color: var(--rust2); font-style: normal; }
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.header-right {
+  display: flex; align-items: center; gap: 20px;
+}
+.engine-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--teal);
+  border: 1px solid var(--teal);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+#indexStatus {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 1px;
+}
+
+/* ── HERO SEARCH ─────────────────────────────────── */
+.hero {
+  padding: 60px 40px 40px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.hero-title .accent { color: var(--rust); }
+.hero-tagline {
+  font-size: 15px;
+  color: var(--ink3);
+  font-weight: 300;
+  margin-bottom: 32px;
+  letter-spacing: 0.3px;
+}
+
+.search-wrap {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 18px 60px 18px 22px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 24px var(--shadow);
+}
+.search-input::placeholder { color: #b0a898; }
+.search-input:focus {
+  border-color: var(--rust);
+  box-shadow: 0 4px 24px var(--shadow), 0 0 0 3px rgba(194,68,10,0.08);
+}
+
+.search-icon {
+  position: absolute; right: 18px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--rust);
+  pointer-events: none;
+  font-size: 20px;
+  opacity: 0.7;
+}
+
+/* Quick search chips */
+.quick-searches {
+  margin-top: 14px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center;
+}
+.qs-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.qs-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.qs-chip:hover {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: #fff;
+}
+
+/* ── RESULTS AREA ────────────────────────────────── */
+.results-area {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 40px 60px;
+}
+
+.results-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+/* File grouping header */
+.file-group { margin-bottom: 32px; }
+.file-group-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.file-icon {
+  width: 36px; height: 36px;
+  background: var(--rust);
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.file-name {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.file-pages-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  margin-left: auto;
+  letter-spacing: 1px;
+}
+
+/* Result card */
+.result-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--rust);
+  border-radius: 3px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px var(--shadow);
+  animation: card-in 0.25s ease both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.result-card:hover {
+  border-left-color: var(--rust2);
+  box-shadow: 0 4px 16px rgba(194,68,10,0.12);
+  transform: translateX(2px);
+}
+
+.result-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.page-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--parchment);
+  color: var(--rust);
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.result-score {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink3);
+  margin-left: auto;
+}
+.result-snippet {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink2);
+  font-weight: 300;
+}
+.result-snippet mark {
+  background: rgba(194,68,10,0.12);
+  color: var(--rust);
+  font-weight: 500;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* ── STATS SIDEBAR STRIP ─────────────────────────── */
+.stats-strip {
+  max-width: 860px;
+  margin: 0 auto 0;
+  padding: 0 40px;
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--parchment);
+  margin-bottom: 0;
+}
+.stat-item {
+  flex: 1;
+  padding: 14px 20px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--rust);
+  display: block;
+  line-height: 1;
+}
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 3px;
+  display: block;
+}
+
+/* ── EMPTY / LOADING STATES ─────────────────────── */
+.state-msg {
+  text-align: center;
+  padding: 60px 0;
+}
+.state-msg .state-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+.state-msg h3 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+.state-msg p {
+  font-size: 13px;
+  color: var(--ink3);
+  font-weight: 300;
+}
+
+/* Loading dots */
+.loading-dots::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+}
+
+/* ── INDEXED FILES LIST ──────────────────────────── */
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.file-pill {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+.file-pill:hover { border-color: var(--rust); box-shadow: 0 2px 10px rgba(194,68,10,0.1); }
+.file-pill-icon { font-size: 20px; flex-shrink: 0; }
+.file-pill-info { min-width: 0; }
+.file-pill-name {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-pill-size {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* Divider */
+.section-divider {
+  max-width: 860px;
+  margin: 28px auto 0;
+  padding: 0 40px;
+  border-top: 1px solid var(--border);
+}
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 20px 0 12px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  header { padding: 0 20px; }
+  .hero, .results-area, .stats-strip, .section-divider { padding-left: 20px; padding-right: 20px; }
+  .hero { padding-top: 36px; }
+  .stats-strip { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-main">Cross<em>-</em>Course</span>
+    <span class="logo-sub">Search Engine</span>
+  </div>
+  <div class="header-right">
+    <span class="engine-badge" id="engineBadge">LOADING</span>
+    <span id="indexStatus">Building index<span class="loading-dots"></span></span>
+  </div>
+</header>
+
+<!-- Stats strip -->
+<div class="stats-strip">
+  <div class="stat-item">
+    <span class="stat-num" id="statFiles">—</span>
+    <span class="stat-label">Documents</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="statPages">—</span>
+    <span class="stat-label">Pages Indexed</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="statTime">—</span>
+    <span class="stat-label">Index Build (s)</span>
+  </div>
+</div>
+
+<!-- Hero + Search -->
+<div class="hero">
+  <h1 class="hero-title">Find anything<br>across <span class="accent">every lecture.</span></h1>
+  <p class="hero-tagline">Instant full-text search across all your course PDFs. No cloud. No login. Just results.</p>
+
+  <div class="search-wrap">
+    <input
+      type="text"
+      id="searchInput"
+      class="search-input"
+      placeholder="Search eigenvalues, DNA replication, Nash equilibrium…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <span class="search-icon">⌕</span>
+  </div>
+
+  <div class="quick-searches">
+    <span class="qs-label">Try:</span>
+    <button class="qs-chip" onclick="quickSearch('eigenvalue')">eigenvalue</button>
+    <button class="qs-chip" onclick="quickSearch('hash table')">hash table</button>
+    <button class="qs-chip" onclick="quickSearch('Schrödinger')">Schrödinger</button>
+    <button class="qs-chip" onclick="quickSearch('Nash equilibrium')">Nash equilibrium</button>
+    <button class="qs-chip" onclick="quickSearch('DNA replication')">DNA replication</button>
+    <button class="qs-chip" onclick="quickSearch('binary search tree')">binary search tree</button>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="results-area" id="resultsArea">
+  <!-- Populated by JS -->
+</div>
+
+<!-- Indexed files section -->
+<div class="section-divider" id="filesSection">
+  <div class="section-label">Indexed Documents</div>
+  <div class="files-grid" id="filesGrid">
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink3);">Loading<span class="loading-dots"></span></div>
+  </div>
+</div>
+<div style="height:60px;"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────
+let searchTimer = null;
+let lastQuery = '';
+let indexReady = false;
+
+// ── POLL STATUS ───────────────────────────────────
+async function pollStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    document.getElementById('engineBadge').textContent = (d.engine || 'pypdf').toUpperCase();
+
+    if (d.ready) {
+      indexReady = true;
+      const s = d.stats;
+      document.getElementById('indexStatus').textContent = `${s.files} files · ${s.pages} pages`;
+      document.getElementById('statFiles').textContent = s.files;
+      document.getElementById('statPages').textContent = s.pages;
+      document.getElementById('statTime').textContent = s.build_time + 's';
+      loadFiles();
+      // Trigger any pending search
+      const q = document.getElementById('searchInput').value.trim();
+      if (q) doSearch(q);
+    } else {
+      setTimeout(pollStatus, 800);
+    }
+  } catch(e) {
+    setTimeout(pollStatus, 1500);
+  }
+}
+
+// ── LOAD FILE LIST ────────────────────────────────
+async function loadFiles() {
+  try {
+    const r = await fetch('/api/files');
+    const files = await r.json();
+    const grid = document.getElementById('filesGrid');
+    grid.innerHTML = files.map(f => `
+      <div class="file-pill" onclick="quickSearch(courseFromFile('${f.name}'))">
+        <span class="file-pill-icon">📄</span>
+        <div class="file-pill-info">
+          <div class="file-pill-name">${f.title}</div>
+          <div class="file-pill-size">${f.size_kb} KB</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+function courseFromFile(name) {
+  // MATH301_Linear_Algebra.pdf → "Linear Algebra"
+  const stem = name.replace('.pdf','').replace(/_/g,' ');
+  const parts = stem.split(' ');
+  return parts.slice(2).join(' ') || parts[0];
+}
+
+// ── SEARCH ───────────────────────────────────────
+function quickSearch(q) {
+  const input = document.getElementById('searchInput');
+  input.value = q;
+  input.focus();
+  doSearch(q);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  pollStatus();
+
+  const input = document.getElementById('searchInput');
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) { showWelcome(); return; }
+    if (q === lastQuery) return;
+    searchTimer = setTimeout(() => doSearch(q), 200);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { input.value = ''; showWelcome(); }
+  });
+
+  showWelcome();
+});
+
+async function doSearch(q) {
+  if (!q) return;
+  lastQuery = q;
+
+  if (!indexReady) {
+    showMsg('⏳', 'Indexing…', 'The search index is still building. Please wait a moment.');
+    return;
+  }
+
+  showMsg('⌕', 'Searching…', '');
+  try {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const d = await r.json();
+
+    // Only render if query hasn't changed
+    if (document.getElementById('searchInput').value.trim() !== q) return;
+    renderResults(d);
+  } catch(e) {
+    showMsg('⚠', 'Error', 'Could not reach the search server.');
+  }
+}
+
+function renderResults(data) {
+  const area = document.getElementById('resultsArea');
+
+  if (!data.results || data.results.length === 0) {
+    area.innerHTML = `
+      <div class="state-msg">
+        <span class="state-icon">🔍</span>
+        <h3>No results for "${escHtml(data.query)}"</h3>
+        <p>Try different keywords or check your spelling.</p>
+      </div>`;
+    return;
+  }
+
+  // Group by file
+  const groups = {};
+  for (const r of data.results) {
+    if (!groups[r.file]) groups[r.file] = { title: r.title, file: r.file, hits: [] };
+    groups[r.file].hits.push(r);
+  }
+
+  const metaEl = `
+    <div class="results-meta">
+      <span>${data.count} result${data.count!==1?'s':''} for "<strong>${escHtml(data.query)}</strong>"</span>
+      <span>${data.elapsed_ms}ms</span>
+    </div>`;
+
+  const groupsHtml = Object.values(groups).map((g, gi) => `
+    <div class="file-group">
+      <div class="file-group-header">
+        <div class="file-icon">📄</div>
+        <div class="file-name">${escHtml(g.title)}</div>
+        <div class="file-pages-count">${g.hits.length} match${g.hits.length!==1?'es':''}</div>
+      </div>
+      ${g.hits.map((h, i) => `
+        <div class="result-card" style="animation-delay:${(gi*3+i)*30}ms"
+             onclick="openPDF('${h.file}', ${h.page})">
+          <div class="result-header">
+            <span class="page-badge">PG ${h.page}</span>
+            <span class="result-score">relevance ${h.score}</span>
+          </div>
+          <div class="result-snippet">${h.snippet}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  area.innerHTML = metaEl + groupsHtml;
+}
+
+function showWelcome() {
+  lastQuery = '';
+  document.getElementById('resultsArea').innerHTML = `
+    <div class="state-msg">
+      <span class="state-icon">📚</span>
+      <h3>Search your entire course library</h3>
+      <p>Type a concept, formula, or keyword above. Results appear instantly.</p>
+    </div>`;
+}
+
+function showMsg(icon, title, body) {
+  document.getElementById('resultsArea').innerHTML = `
+    <div class="state-msg">
+      <span class="state-icon">${icon}</span>
+      <h3>${title}</h3>
+      <p>${body}</p>
+    </div>`;
+}
+
+function openPDF(file, page) {
+  window.open(`/api/pdf/${file}#page=${page}`, '_blank');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
